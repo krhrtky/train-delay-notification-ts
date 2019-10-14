@@ -1,5 +1,6 @@
 import { APIGatewayProxyHandler } from 'aws-lambda'
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
+import { getKantoLineNames } from '../api/train'
 
 import 'source-map-support/register'
 
@@ -11,6 +12,23 @@ const dynamoOption = process.env.IS_OFFLINE
   : null
 const doc = new DocumentClient(dynamoOption)
 
+const getInitialDate = async () => {
+  console.log('初期データ登録')
+  const lines = (await getKantoLineNames()).map(name => ({
+    name,
+    notice: true
+  }))
+
+  for (const line of lines) {
+    doc.put({
+      TableName: process.env.DYNAMODB_TABLE,
+      Item: line
+    })
+  }
+
+  return lines
+}
+
 export const findAll: APIGatewayProxyHandler = async () => {
   try {
     const { Items } = await doc
@@ -19,11 +37,13 @@ export const findAll: APIGatewayProxyHandler = async () => {
       })
       .promise()
 
+    const lines = Items.length === 0 ? await getInitialDate() : Items
+
     return {
       statusCode: 200,
       body: JSON.stringify(
         {
-          lines: Items
+          lines
         },
         null,
         2
@@ -47,7 +67,7 @@ export const findByLineName: APIGatewayProxyHandler = async event => {
     .get({
       TableName: process.env.DYNAMODB_TABLE,
       Key: {
-        line: lineName
+        name: lineName
       }
     })
     .promise()

@@ -26,10 +26,10 @@ resources:
       Properties:
         TableName: ${self:service}-${opt:stage, "dev"}
         AttributeDefinitions:
-          - AttributeName: line
+          - AttributeName: name
             AttributeType: S
         KeySchema:
-          - AttributeName: line
+          - AttributeName: name
             KeyType: HASH
         ProvisionedThroughput:
           ReadCapacityUnits: 1
