@@ -9,6 +9,7 @@
   "dependencies": {
     "aws-sdk": "^2.548.0",
     "axios": "^0.19.0",
+    "canvas": "^2.6.0",
     "jsdom": "^15.2.0",
     "source-map-support": "^0.5.10"
   },
@@ -33,7 +34,8 @@
     "serverless-webpack": "^5.2.0",
     "ts-loader": "^5.3.3",
     "typescript": "^3.2.4",
-    "webpack": "^4.29.0"
+    "webpack": "^4.29.0",
+    "webpack-node-externals": "^1.7.2"
   },
   "author": "The serverless webpack authors (https://github.com/elastic-coders/serverless-webpack)",
   "license": "MIT"

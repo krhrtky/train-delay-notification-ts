@@ -19,11 +19,14 @@ const getInitialDate = async () => {
     notice: true
   }))
 
+  console.log(doc.put)
   for (const line of lines) {
-    doc.put({
-      TableName: process.env.DYNAMODB_TABLE,
-      Item: line
-    })
+    await doc
+      .put({
+        TableName: process.env.DYNAMODB_TABLE,
+        Item: line
+      })
+      .promise()
   }
 
   return lines
@@ -41,6 +44,10 @@ export const findAll: APIGatewayProxyHandler = async () => {
 
     return {
       statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Credentials': 'true'
+      },
       body: JSON.stringify(
         {
           lines
@@ -53,6 +60,10 @@ export const findAll: APIGatewayProxyHandler = async () => {
     console.log(e)
     return {
       statusCode: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Credentials': 'true'
+      },
       body: JSON.stringify({
         message: e.message
       })
@@ -61,7 +72,8 @@ export const findAll: APIGatewayProxyHandler = async () => {
 }
 
 export const findByLineName: APIGatewayProxyHandler = async event => {
-  const lineName = event.pathParameters.lineName
+  const lineName = decodeURI(event.pathParameters.lineName)
+  console.log(`param: ${lineName}`)
 
   const { Item } = await doc
     .get({
@@ -74,12 +86,17 @@ export const findByLineName: APIGatewayProxyHandler = async event => {
 
   return {
     statusCode: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Credentials': 'true'
+    },
     body: JSON.stringify({ line: Item }, null, 2)
   }
 }
 
 export const update: APIGatewayProxyHandler = async event => {
   const item = JSON.parse(event.body)
+  console.log(item)
 
   await doc
     .put({
@@ -89,6 +106,10 @@ export const update: APIGatewayProxyHandler = async event => {
     .promise()
   return {
     statusCode: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Credentials': 'true'
+    },
     body: JSON.stringify({}, null, 2)
   }
 }

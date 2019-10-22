@@ -9,6 +9,7 @@ plugins:
   - serverless-webpack
   - serverless-dynamodb-local
   - serverless-offline
+  - serverless-offline-scheduler
 
 custom:
   dynamodb:
@@ -37,19 +38,24 @@ resources:
 
 provider:
   name: aws
-  runtime: nodejs10.x
+  runtime: nodejs8.10
   iamRoleStatements:
     - Effect: Allow
       Action:
-        -  dynamodb:Query
-        -  dynamodb:Scan
-        -  dynamodb:GetItem
-        -  dynamodb:PutItem
-        -  dynamodb:UpdateItem
-        -  dynamodb:DeleteItem
-      Resopurce: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        - logs:CreateLogGroup
+        - logs:CreateLogStream
+        - logs:PutLogEvents
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
   environment:
     DYNAMODB_TABLE: ${self:service}-${opt:stage, "dev"}
+    SLACK_API_END_POINT: ${file(../config.${self:provider.stage}.json):SLACK_API_END_POINT}
+    ALLOW_ORIGIN: ${file(../config.${self:provider.stage}.json):ALLOW_ORIGIN, '*'}
 
 functions:
   findAll:
@@ -58,17 +64,64 @@ functions:
       - http:
           method: get
           path: lines
-
+          cors:
+            origins:
+              - ${self:provider.environment.ALLOW_ORIGIN}
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+    layers:
+      - {Ref: LayerLambdaLayer}
   findByLineName:
     handler: src/controller/linesController.findByLineName
     events:
       - http:
           method: get
           path: lines/{lineName}
-
+          cors:
+            origins:
+              - ${self:provider.environment.ALLOW_ORIGIN}
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+    layers:
+      - {Ref: LayerLambdaLayer}
   update:
     handler: src/controller/linesController.update
     events:
       - http:
           method: put
           path: lines/{lineName}
+          cors:
+            origins:
+              - ${self:provider.environment.ALLOW_ORIGIN}
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+    layers:
+      - {Ref: LayerLambdaLayer}
+  batch:
+    handler: src/controller/batchController.execute
+    events:
+      - schedule: cron(0/60 0-12 ? * * *)
+      - schedule: cron(0/60 21-23 ? * * *)
+    layers:
+      - {Ref: LayerLambdaLayer}
+
+layers:
+  layer:
+    path: layer
+    compatibleRuntimes:
+      - nodejs8.10
